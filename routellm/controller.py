@@ -46,12 +46,16 @@ class Controller:
         weak_model: str,
         config: Optional[dict[str, dict[str, Any]]] = None,
         api_base: Optional[str] = None,
+        strong_api_base: Optional[str] = None,
+        weak_api_base: Optional[str] = None,
         api_key: Optional[str] = None,
         progress_bar: bool = False,
     ):
         self.model_pair = ModelPair(strong=strong_model, weak=weak_model)
         self.routers = {}
         self.api_base = api_base
+        self.strong_api_base = strong_api_base
+        self.weak_api_base = weak_api_base
         self.api_key = api_key
         self.model_counts = defaultdict(lambda: defaultdict(int))
         self.progress_bar = progress_bar
@@ -150,6 +154,12 @@ class Controller:
         kwargs["model"] = self._get_routed_model_for_completion(
             kwargs["messages"], router, threshold
         )
+
+        if kwargs.get("model") == self.model_pair.weak:
+            return completion(api_base=self.weak_api_base, api_key=self.api_key, **kwargs)
+        else:
+            return completion(api_base=self.strong_api_base, api_key=self.api_key, **kwargs)
+        
         return completion(api_base=self.api_base, api_key=self.api_key, **kwargs)
 
     # Matches OpenAI's Async Chat Completions interface, but also supports optional router and threshold args
@@ -167,4 +177,10 @@ class Controller:
         kwargs["model"] = self._get_routed_model_for_completion(
             kwargs["messages"], router, threshold
         )
+
+        if kwargs.get("model") == self.model_pair.weak:
+            return await acompletion(api_base=self.weak_api_base, api_key=self.api_key, **kwargs)
+        else:
+            return await acompletion(api_base=self.strong_api_base, api_key=self.api_key, **kwargs)
+        
         return await acompletion(api_base=self.api_base, api_key=self.api_key, **kwargs)
